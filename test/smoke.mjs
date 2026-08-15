@@ -23,7 +23,7 @@ const ctx = {
     return undefined;
   },
   effect(fn) {
-    effectCleanup = fn;
+    effectCleanup = fn();
   },
 };
 
