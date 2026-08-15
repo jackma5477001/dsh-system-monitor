@@ -1,45 +1,67 @@
 # dsh-system-monitor
 
-DSH 插件：在 Web GUI **右上角上下两行**显示信息：上方是 Session log / DeepSeek 余额按钮，下方是 DSH 所在电脑的 **CPU 使用率**与**内存使用率**。
+`dsh-system-monitor` 是一个 DSH Web 插件，用于显示运行 DSH 的电脑的实时硬件运行信息：
 
+- CPU 使用率
+- 内存使用率
+- 内存已用容量 / 总容量
+
+插件只采集 DSH 服务端所在电脑的本机资源，不读取对话内容、文件内容或网络数据。
+
+## 页面位置
+
+信息显示在 Web GUI 右上角，并分为上下两行：
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│  会话标题 …                                  [Session log] [余额] │
+│                                             CPU 23% · MEM 58% · 8.2GB/16.0GB │
+└──────────────────────────────────────────────────────────────┘
 ```
-┌──────────────────────────────────────────────┐
-│  会话标题 …        [模型] [子代理] [任务]      │ ← 现有区域
-│                         [Session log] [余额]   │ ← 右上角上行
-│                   CPU 23% · MEM 58% · 8.2/16GB │ ← 右上角下行
-└──────────────────────────────────────────────┘
-```
 
-## 特性
+上行保留 DSH 原有的 Session log 和余额按钮，下行右对齐显示系统监控数据。
 
-- 服务端（host 半面）每 5 秒用 Node 内置 `os` 模块采样本机性能（两次采样差值计算 CPU 占用，不引入任何第三方依赖）；
-- `GET /api/dsh-system-monitor/stats` 输出 JSON；浏览器半面每 5 秒轮询一次并渲染；
-- 采集失败时显示 `CPU -- · MEM --` 占位符，恢复后自动更新；
-- 不采集任何对话内容、文件内容或网络数据，仅本机资源占用。
+## 工作方式
+
+- 服务端使用 Node.js 内置的 `os` 模块采集 CPU 和内存数据，不引入第三方运行时依赖；
+- 服务端每 5 秒更新一次采样结果；
+- 浏览器端每 5 秒请求一次统计接口并刷新显示；
+- 服务端或接口暂不可用时，界面显示 `--`，恢复后自动更新；
+- CPU 使用率通过两次 CPU 时间采样的差值计算。
 
 ## 安装
 
-1. 把本包安装到 dsh profile（以 web profile 为例）：
+以 Web profile 为例：
 
-   ```bash
-   cd ~/.dsh/profiles/web
-   pnpm add /path/to/dsh-system-monitor
-   ```
+```bash
+cd ~/.dsh/profiles/web
+pnpm add /path/to/dsh-system-monitor
+```
 
-2. 在 `~/.dsh/profiles/web/cordis.patch.yml` 的 `insert` 列表追加：
+也可以直接安装本地目录：
 
-   ```yaml
-   # dsh-system-monitor 插件：
-   # 在 Session Header 右上角（Session log / 余额下方）显示本机 CPU/内存使用率。
-   - id: dsh-system-monitor
-     name: dsh-system-monitor
-   ```
+```bash
+pnpm add D:/App/code/Project/dph/default/dsh-system-monitor
+```
 
-3. 重启 `dsh web` 服务，刷新浏览器页面即可看到新增的性能信息行。
+然后在 `~/.dsh/profiles/web/cordis.patch.yml` 的 `insert` 列表中加入：
 
-## 数据格式
+```yaml
+- id: dsh-system-monitor
+  name: dsh-system-monitor
+```
 
-`GET /api/dsh-system-monitor/stats` 返回：
+重启 `dsh web` 服务并刷新浏览器页面即可生效。
+
+## HTTP 接口
+
+插件注册以下接口：
+
+```text
+GET /api/dsh-system-monitor/stats
+```
+
+成功响应示例：
 
 ```json
 {
@@ -55,13 +77,43 @@ DSH 插件：在 Web GUI **右上角上下两行**显示信息：上方是 Sessi
 }
 ```
 
-- `status`: `"ok"` / `"error"`（error 时其余字段缺失，前端显示 `--`）；
-- `cpu`: 0–100 的整数百分比；启动后首个采样点仅有基准值，`cpu` 为 `null`（约 100ms 后即有有效值）；
-- `memUsed` / `memTotal`: 字节数；前端按“总量 ≥1GB 显示 GB（1 位小数），否则按 MB 取整”格式化。
+字段说明：
+
+| 字段 | 说明 |
+| --- | --- |
+| `status` | `ok` 或 `error`；错误时前端显示占位符 |
+| `cpu` | 0–100 的整数百分比；首次采样建立基准，可能暂为 `null` |
+| `memPercent` | 内存使用率百分比 |
+| `memUsed` | 已使用内存，单位为字节 |
+| `memTotal` | 总内存，单位为字节 |
+| `sampledAt` | 采样时间戳，单位为毫秒 |
+
+容量显示规则：总容量不小于 1GB 时显示 GB 并保留 1 位小数，否则按 MB 取整。
 
 ## 测试
 
+在插件目录执行：
+
 ```bash
-node test/smoke.mjs        # 服务端：路由注册 + 采样结果结构校验
-node test/client-sim.mjs   # 前端：bundle 加载 + slot 注册 + 轮询与格式化
+node test/smoke.mjs
+node test/client-sim.mjs
 ```
+
+其中：
+
+- `smoke.mjs` 验证服务端路由、采样数据和清理逻辑；
+- `client-sim.mjs` 验证前端 bundle、slot 注册、两行右对齐布局、轮询和容量格式化。
+
+## 目录结构
+
+```text
+lib/index.js       # 服务端采样与 HTTP 路由
+lib/client.js      # 浏览器端组件与右上角布局
+test/smoke.mjs     # 服务端测试
+test/client-sim.mjs # 浏览器端模拟测试
+docs/需求文档.md   # 原始需求文档
+```
+
+## 许可证
+
+MIT
