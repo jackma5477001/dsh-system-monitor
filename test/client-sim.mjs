@@ -192,8 +192,26 @@ assert.ok(text.includes("CPU --"), `首帧含 CPU 占位（实际: ${text}）`);
 assert.ok(text.includes("MEM --"), `首帧含 MEM 占位（实际: ${text}）`);
 console.log("PASS: 首帧占位文本:", text.trim());
 
-// —— 执行轮询 effect，等待 fetch 完成 ——
+// 模拟 data-slot（display: contents）与 headerUtilities 的父子关系，
+// 验证右上角容器被改成两行右对齐网格。
+const utilities = {
+  style: {
+    display: "",
+    gridTemplateColumns: "",
+    justifyContent: "",
+    alignItems: "",
+    gap: "",
+  },
+};
+const slot = { parentElement: utilities };
+const lineEl = { parentElement: slot };
+vdom.props.ref.current = lineEl;
+
+// —— 执行轮询与布局 effect，等待 fetch 完成 ——
 const cleanups = r.flushEffects();
+assert.equal(utilities.style.display, "grid", "右上角容器使用网格布局");
+assert.equal(utilities.style.gridTemplateColumns, "repeat(2, max-content)", "上行保留两列控件");
+assert.equal(utilities.style.justifyContent, "end", "右上角容器右对齐");
 await new Promise((resolve) => setTimeout(resolve, 50));
 // 验证 fetch 被调用且数据驱动重渲染后文本正确
 const setStateFn = r.useState; // 不直接用；通过再次渲染组件读取最新 state
@@ -259,5 +277,6 @@ console.log("PASS: 小容量格式化:", text2.trim());
 for (const cleanup of [...cleanups, ...cleanups2]) {
   if (typeof cleanup === "function") cleanup();
 }
+assert.equal(utilities.style.display, "", "卸载时恢复右上角容器样式");
 
 console.log("ALL PASS");

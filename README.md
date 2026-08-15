@@ -1,11 +1,12 @@
 # dsh-system-monitor
 
-DSH 插件：在 Web GUI 右上角，与 Session log / DeepSeek 余额按钮**同一行**实时显示 DSH 所在电脑的 **CPU 使用率**与**内存使用率**。
+DSH 插件：在 Web GUI **右上角上下两行**显示信息：上方是 Session log / DeepSeek 余额按钮，下方是 DSH 所在电脑的 **CPU 使用率**与**内存使用率**。
 
 ```
 ┌──────────────────────────────────────────────┐
 │  会话标题 …        [模型] [子代理] [任务]      │ ← 现有区域
-│             [Session log] [余额] CPU 23% · MEM 58% · 8.2/16GB │ ← 右上角信息行
+│                         [Session log] [余额]   │ ← 右上角上行
+│                   CPU 23% · MEM 58% · 8.2/16GB │ ← 右上角下行
 └──────────────────────────────────────────────┘
 ```
 
@@ -29,7 +30,7 @@ DSH 插件：在 Web GUI 右上角，与 Session log / DeepSeek 余额按钮**�
 
    ```yaml
    # dsh-system-monitor 插件：
-   # 在 Session Header 右上角（与 Session log / 余额同一行）显示本机 CPU/内存使用率。
+   # 在 Session Header 右上角（Session log / 余额下方）显示本机 CPU/内存使用率。
    - id: dsh-system-monitor
      name: dsh-system-monitor
    ```
