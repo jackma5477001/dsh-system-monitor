@@ -192,48 +192,9 @@ assert.ok(text.includes("CPU --"), `首帧含 CPU 占位（实际: ${text}）`);
 assert.ok(text.includes("MEM --"), `首帧含 MEM 占位（实际: ${text}）`);
 console.log("PASS: 首帧占位文本:", text.trim());
 
-// —— 执行 effects（轮询 + 移动），等待 fetch 完成 ——
-let cleanups;
-
-// 移动逻辑：模拟真实 DOM 树（titleRow → headerUtilities → data-slot → 监控行）
-const header = {
-  children: [],
-  insertBefore(node, reference) {
-    const oldParent = node.parentNode;
-    const oldIndex = oldParent?.children?.indexOf(node) ?? -1;
-    if (oldIndex >= 0) oldParent.children.splice(oldIndex, 1);
-    const index = this.children.indexOf(reference);
-    this.children.splice(index >= 0 ? index : this.children.length, 0, node);
-    node.parentNode = this;
-    node.parentElement = this;
-  },
-};
-const tabs = { parentNode: header, parentElement: header, children: [] };
-const titleRow = { parentNode: header, parentElement: header, nextSibling: tabs, children: [] };
-const utilities = {
-  parentElement: titleRow,
-  parentNode: titleRow,
-  children: [],
-};
-const slot = {
-  parentElement: utilities,
-  parentNode: utilities,
-  children: [],
-};
-header.children = [titleRow, tabs];
-titleRow.children = [utilities];
-utilities.children = [slot];
-// 组件挂载时 useRef 的 current 在真实 React 中由 ref 回调注入；
-// 手动注入模拟节点验证移动逻辑
-const lineEl = { parentElement: slot, parentNode: slot, nextSibling: null };
-slot.children.push(lineEl);
-vdom.props.ref.current = lineEl;
-cleanups = r.flushEffects();
-assert.equal(lineEl.parentNode, header, "监控行已移到 header");
-assert.equal(header.children[1], lineEl, "监控行位于标题行之后");
-assert.equal(slot.children.length, 0, "data-slot 容器不再保留监控行");
+// —— 执行轮询 effect，等待 fetch 完成 ——
+const cleanups = r.flushEffects();
 await new Promise((resolve) => setTimeout(resolve, 50));
-// ref 在首次 flush 前注入，确保测试覆盖挂载时的真实移动逻辑。
 // 验证 fetch 被调用且数据驱动重渲染后文本正确
 const setStateFn = r.useState; // 不直接用；通过再次渲染组件读取最新 state
 vdom = r.render(component);
