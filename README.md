@@ -21,6 +21,10 @@
 
 上行保留 DSH 原有的 Session log 和余额按钮，下行右对齐显示系统监控数据。
 
+实际效果：
+
+![dsh-system-monitor 实际效果](docs/images/dsh-system-monitor.png)
+
 ## 工作方式
 
 - 服务端使用 Node.js 内置的 `os` 模块采集 CPU 和内存数据，不引入第三方运行时依赖；
