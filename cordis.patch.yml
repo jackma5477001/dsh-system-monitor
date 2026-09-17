@@ -1,0 +1,5 @@
+# dsh-system-monitor bundle patch.
+# Adds the host and client halves to the selected DSH profile.
+- insert:
+    - id: dsh-system-monitor
+      name: dsh-system-monitor
